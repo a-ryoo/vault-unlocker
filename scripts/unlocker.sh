@@ -71,4 +71,5 @@ if [ "$is_sealed" = "true" ]; then
   log "Vault unsealed."
 else
   log "Vault is already unsealed."
+  exit 0
 fi
