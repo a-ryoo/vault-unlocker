@@ -12,6 +12,9 @@ log() {
   echo "[$(date +%H:%M:%S)] $*"
 }
 
+sleep_seconds=$(od -An -N2 -i /dev/urandom | awk '{print (5 + $1 % 6)}')
+sleep "$sleep_seconds"
+
 is_initialized=$(curl -s "${VAULT_ADDR}/v1/sys/init" | jq -r .initialized)
 
 if [ "$is_initialized" = "false" ]; then
