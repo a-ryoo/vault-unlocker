@@ -21,23 +21,6 @@ rules:
       - create
       - update
       - patch
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: vault-discovery-role
-  namespace: vault
-rules:
-  - apiGroups:
-      - ''
-    resources:
-      - pods
-    verbs:
-      - get
-      - watch
-      - list
-      - update
-      - patch
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -53,18 +36,3 @@ roleRef:
   kind: Role
   name: vault-secret-access
   apiGroup: rbac.authorization.k8s.io
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: vault-discovery-rolebinding
-  namespace: vault
-subjects:
-  - kind: ServiceAccount
-    name: vault
-    namespace: vault
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: vault-discovery-role
