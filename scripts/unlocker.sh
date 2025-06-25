@@ -106,3 +106,6 @@ if [ "$is_sealed" = "true" ]; then
 else
   log "Vault is already unsealed."
 fi
+
+log "Vault unlocker finished. Sleeping indefinitely to keep the container alive..."
+sleep infinity
