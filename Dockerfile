@@ -5,6 +5,7 @@ RUN apk add --no-cache \
     bash \
     coreutils \
     ca-certificates \
+    jq \
     wget && \
     KUBECTL_VERSION="$(curl -s https://cdn.dl.k8s.io/release/stable.txt)" && \
     curl -Lo /usr/local/bin/kubectl "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl" && \

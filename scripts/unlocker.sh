@@ -12,7 +12,7 @@ log() {
   echo "[$(date +%H:%M:%S)] $*"
 }
 
-is_initialized=$(curl -s "${VAULT_ADDR}/v1/sys/init" | grep -o '"initialized":[^,]*' | cut -d':' -f2)
+is_initialized=$(curl -s "${VAULT_ADDR}/v1/sys/init" | jq -r .initialized)
 
 if [ "$is_initialized" = "false" ]; then
   log "Vault is not initialized. Initializing..."
@@ -21,14 +21,12 @@ if [ "$is_initialized" = "false" ]; then
     --data "{\"secret_shares\": ${KEY_COUNT}, \"secret_threshold\": ${THRESHOLD}}" \
     "${VAULT_ADDR}/v1/sys/init")
 
-  root_token=$(echo "$init_json" | grep -o '"root_token":"[^"]*' | cut -d':' -f2 | tr -d '"')
-  unseal_keys=$(echo "$init_json" | grep -o '"keys_base64":\[[^]]*' | cut -d'[' -f2 | tr -d '"[]')
-  unseal_keys_multiline=$(echo "$unseal_keys" | tr ',' '\n')
+  root_token=$(echo "$init_json" | jq -r .root_token)
+  unseal_keys_multiline=$(echo "$init_json" | jq -r '.keys_base64[]')
 
   b64_keys=$(printf '%s\n' "$unseal_keys_multiline" | base64 | tr -d '\n')
   b64_token=$(printf '%s' "$root_token" | base64 | tr -d '\n')
 
-  # Create secret YAML manifest
   secret_yaml=$(cat <<EOF
 apiVersion: v1
 kind: Secret
@@ -42,9 +40,9 @@ data:
 EOF
 )
 
-log "Creating Kubernetes secret ${SECRET_NAME} in namespace ${NAMESPACE}..."
-echo "$secret_yaml" | kubectl apply -f -
-log "Secret created."
+  log "Creating Kubernetes secret ${SECRET_NAME} in namespace ${NAMESPACE}..."
+  echo "$secret_yaml" | kubectl apply -f -
+  log "Secret created."
 
 else
   log "Vault already initialized."
@@ -57,7 +55,7 @@ else
   unseal_keys_multiline=$(kubectl get secret "${SECRET_NAME}" -n "${NAMESPACE}" -o jsonpath="{.data.unseal_keys}" | base64 -d)
 fi
 
-is_sealed=$(curl -s "${VAULT_ADDR}/v1/sys/seal-status" | grep -o '"sealed":[^,]*' | cut -d':' -f2)
+is_sealed=$(curl -s "${VAULT_ADDR}/v1/sys/seal-status" | jq -r .sealed)
 
 if [ "$is_sealed" = "true" ]; then
   log "Vault is sealed. Unsealing..."
