@@ -1,0 +1,43 @@
+# Integration example: replace the local image with a published GHCR digest.
+# Apply only after Vault's seal migration has completed and the Secret exists.
+server:
+  volumes:
+    - name: unlocker-no-api-token
+      emptyDir: {}
+    - name: unlocker-keys
+      secret:
+        secretName: vault-unseal-keys
+        defaultMode: 0440
+        items:
+          - key: unseal_keys
+            path: unseal_keys
+  extraContainers:
+    - name: vault-unlocker
+      image: vault-unlocker:local
+      imagePullPolicy: IfNotPresent
+      env:
+        - name: VAULT_ADDR
+          value: http://127.0.0.1:8200
+      volumeMounts:
+        - name: unlocker-no-api-token
+          mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+          readOnly: true
+        - name: unlocker-keys
+          mountPath: /vault/unseal
+          readOnly: true
+      securityContext:
+        runAsUser: 100
+        runAsGroup: 1000
+        runAsNonRoot: true
+        readOnlyRootFilesystem: true
+        allowPrivilegeEscalation: false
+        capabilities:
+          drop: [ALL]
+        seccompProfile:
+          type: RuntimeDefault
+      resources:
+        requests:
+          cpu: 10m
+          memory: 16Mi
+        limits:
+          memory: 64Mi

@@ -1,6 +1,8 @@
-name: Build and Publish Vault Unlocker Image
+name: Verify and Publish Vault Unlocker Image
 
 on:
+  push:
+  pull_request:
   release:
     types: [published]
 
@@ -8,7 +10,23 @@ env:
   IMAGE_NAME: ghcr.io/${{ github.repository }}
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test unseal lifecycle
+        run: |
+          command -v curl jq
+          sh -n scripts/unlocker.sh
+          python3 -m unittest discover -s tests -v
+      - name: Build image
+        run: docker build --platform linux/amd64 --tag vault-unlocker:test .
+
   build:
+    if: github.event_name == 'release'
+    needs: test
     runs-on: ubuntu-latest
 
     permissions:
@@ -26,14 +44,11 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.CR_PAT }}
 
-      - name: Extract short SHA
-        id: vars
-        run: echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
-
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
           context: .
+          platforms: linux/amd64
           push: true
           tags: |
             ${{ env.IMAGE_NAME }}:latest
